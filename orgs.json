@@ -2,10 +2,12 @@
   "appGeQemouVNAWX5W": {
     "org_name": "Code The Dream",
     "org_abbreviation": "CTD",
-    "exclude_fields": ["Attachments"]
+    "exclude_fields": ["Attachments"],
+    "output_name": "ctd-employer-partners-apprentice-facing"
   },
   "appY2AUgdy9lc9OMv": {
     "org_name": "Code The Dream",
-    "org_abbreviation": "CTD"
+    "org_abbreviation": "CTD",
+    "output_name": "ctd-job-listings-public"
   }
 }

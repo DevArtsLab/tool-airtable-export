@@ -2,7 +2,7 @@
   "name": "airtable_export",
   "version": "1.0.0",
   "description": "",
-  "main": "scrape.js",
+  "main": "export.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },

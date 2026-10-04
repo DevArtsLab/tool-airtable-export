@@ -168,7 +168,7 @@ async function exportOneTable(browser, shareUrl, attempt = 1) {
       .replace(/^-+|-+$/g, "")
       .toLowerCase();
     const orgAbbr = orgInfo.org_abbreviation ? orgInfo.org_abbreviation.toLowerCase() : "org";
-    const baseName = `${orgAbbr}-${titleSlug}`;
+    const baseName = orgInfo.output_name || `${orgAbbr}-${titleSlug}`;
 
     let finalRecords = records;
     let newCount = records.length;

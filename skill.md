@@ -45,16 +45,18 @@ await page.waitForTimeout(5000); // let JS hydrate the page
 
 The page automatically calls `readSharedViewData` when it loads. Intercept this request to capture the full URL (which contains the access policy and signature).
 
-The page always requests msgpack (`allowMsgpackOfResult: true`), and the server honors that parameter, so flip it to `false` on the captured URL to get a JSON response when replaying it.
+The page always requests msgpack (`allowMsgpackOfResult: true`), and the server honors that parameter, so rewrite it to `false` on the captured URL to get a JSON response when replaying it. If the parameter is absent, inject it into `stringifiedObjectParams` instead.
 
 ```javascript
-let capturedUrl = null;
+let sharedViewUrl = null;
 page.on("request", (request) => {
   const url = request.url();
   if (url.includes("readSharedViewData")) {
-    capturedUrl = url.replace(/(%22allowMsgpackOfResult%22%3A|"allowMsgpackOfResult":)true/, "$1false");
+    sharedViewUrl = url;
   }
 });
+
+const capturedUrl = /allowMsgpackOfResult/i.test(sharedViewUrl) ? sharedViewUrl.replace(/(%22allowMsgpackOfResult%22%3A|"allowMsgpackOfResult":)(?:true|false)/, "$1false") : sharedViewUrl.replace(/(stringifiedObjectParams=(?:%7B|\{)[^&]*?)(?:%7D|\})(?=&)/, "$1,%22allowMsgpackOfResult%22%3Afalse%7D");
 ```
 
 This eliminates the need to parse HTML or hardcode access policies. The captured URL contains everything needed for the fetch.

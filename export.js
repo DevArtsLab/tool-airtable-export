@@ -34,12 +34,15 @@ async function exportOneTable(browser, shareUrl, attempt = 1) {
   const context = await browser.newContext();
   const page = await context.newPage();
 
-  let capturedUrl = null;
+  let sharedViewUrl = null;
+  const apiPaths = new Set();
   page.on("request", (request) => {
     const url = request.url();
+    if (url.includes("airtable.com/v0.3/")) {
+      apiPaths.add(url.split("?")[0]);
+    }
     if (url.includes("readSharedViewData")) {
-      // Airtable always requests msgpack; ask for JSON instead when replaying the URL
-      capturedUrl = url.replace(/(%22allowMsgpackOfResult%22%3A|"allowMsgpackOfResult":)true/, "$1false");
+      sharedViewUrl = url;
     }
   });
 
@@ -51,9 +54,13 @@ async function exportOneTable(browser, shareUrl, attempt = 1) {
     });
     await page.waitForTimeout(5000);
 
-    if (!capturedUrl) {
-      throw new Error("Failed to capture readSharedViewData request URL");
+    if (!sharedViewUrl) {
+      const seen = [...apiPaths].slice(-10).join(", ") || "none";
+      throw new Error(`Failed to capture readSharedViewData request URL (page: ${page.url()}, API calls seen: ${seen})`);
     }
+
+    // Airtable always requests msgpack; force JSON when replaying the URL.
+    const capturedUrl = /allowMsgpackOfResult/i.test(sharedViewUrl) ? sharedViewUrl.replace(/(%22allowMsgpackOfResult%22%3A|"allowMsgpackOfResult":)(?:true|false)/, "$1false") : sharedViewUrl.replace(/(stringifiedObjectParams=(?:%7B|\{)[^&]*?)(?:%7D|\})(?=&)/, "$1,%22allowMsgpackOfResult%22%3Afalse%7D");
 
     console.log("Captured API URL with access policy");
 
@@ -79,6 +86,11 @@ async function exportOneTable(browser, shareUrl, attempt = 1) {
 
         if (!resp.ok) {
           return { error: `HTTP ${resp.status}` };
+        }
+
+        const contentType = resp.headers.get("content-type") || "";
+        if (!contentType.includes("json")) {
+          return { error: `Unexpected content-type ${contentType}` };
         }
 
         const data = await resp.json();

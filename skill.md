@@ -45,12 +45,14 @@ await page.waitForTimeout(5000); // let JS hydrate the page
 
 The page automatically calls `readSharedViewData` when it loads. Intercept this request to capture the full URL (which contains the access policy and signature).
 
+The page always requests msgpack (`allowMsgpackOfResult: true`), and the server honors that parameter, so flip it to `false` on the captured URL to get a JSON response when replaying it.
+
 ```javascript
 let capturedUrl = null;
 page.on("request", (request) => {
   const url = request.url();
-  if (url.includes("readSharedViewData") && !url.includes("allowMsgpackOfResult")) {
-    capturedUrl = url;
+  if (url.includes("readSharedViewData")) {
+    capturedUrl = url.replace(/(%22allowMsgpackOfResult%22%3A|"allowMsgpackOfResult":)true/, "$1false");
   }
 });
 ```
@@ -75,7 +77,6 @@ const result = await page.evaluate(
       headers: {
         "X-Requested-With": "XMLHttpRequest",
         "x-airtable-application-id": appId,
-        "x-airtable-accept-msgpack": "true",
         "x-user-locale": "en",
         "x-airtable-inter-service-client": "webClient",
         "x-time-zone": "America/New_York"
@@ -234,7 +235,7 @@ fs.writeFileSync(`objects/${baseName}.json`, compactJson + "\n");
 2. **Dynamic access policy capture** - network interception grabs the API URL automatically, no hardcoding or HTML parsing needed
 3. **No authentication headaches** - Playwright loads the real page, establishing cookies and session state. The `fetch()` call runs inside the browser, inheriting all of this
 4. **All rows at once** - `readSharedViewData` returns the complete dataset, not just the visible page. No pagination needed
-5. **JSON response** - despite `x-airtable-accept-msgpack: true` header, the browser's fetch negotiates a JSON response (msgpack is only used when the request comes from Airtable's own XHR interceptor)
+5. **JSON response** - setting `allowMsgpackOfResult` to `false` in the captured URL and omitting the `x-airtable-accept-msgpack` header makes the server return JSON, so no msgpack decoder is needed
 6. **Select fields resolved** - the column definitions include choice mappings, so select field IDs can be converted to human-readable text
 7. **Rich text flattened** - Airtable's `documentValue` rich text format is flattened to plain text strings
 8. **Native type preservation** - arrays and objects keep their native JSON types instead of being stringified
@@ -243,7 +244,9 @@ fs.writeFileSync(`objects/${baseName}.json`, compactJson + "\n");
 
 - **Missing `x-time-zone` header** -> 400 BAD_REQUEST. Always include it.
 - **Fetching from Node.js directly** -> 401 Unauthorized. Must fetch from within the browser context.
-- **Msgpack decoding** -> unnecessary complexity. The browser fetch returns JSON directly.
+- **Msgpack response** -> replaying the captured URL unchanged returns `application/msgpack`, which `resp.json()` cannot parse. Set `allowMsgpackOfResult` to `false` first.
+- **Filtering out the captured URL** -> the page's only `readSharedViewData` request now always carries `allowMsgpackOfResult`, so skipping URLs that contain it captures nothing.
+- **Missing `x-airtable-application-id` header** -> 400 BAD_REQUEST. Always include it.
 - **`typeOptions.choices` format** -> can be either an array or an object. Handle both.
 - **Access policy signature expiry** -> the signature has an `expires` field. If it expires, re-navigate to the share URL to get a fresh one.
 - **UTC vs local time** - use `getFullYear()`, `getMonth()`, `getDate()` for `exportedAt` to avoid timezone drift.

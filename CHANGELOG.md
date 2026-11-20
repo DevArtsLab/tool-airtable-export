@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.6.1] - 2026-11-20
+
+- Fixed `Failed to capture readSharedViewData request URL`: Airtable now issues a single shared-view request that always sets `allowMsgpackOfResult`, which the old filter skipped
+- The captured URL now has `allowMsgpackOfResult` rewritten to `false` and the `x-airtable-accept-msgpack` header dropped, so the API returns JSON instead of msgpack
+
 ## [1.6.0] - 2026-09-02
 
 - Removed parent `ARCHITECTURE.md` pipeline design to keep the repo focused on its own export capability

@@ -37,8 +37,9 @@ async function exportOneTable(browser, shareUrl, attempt = 1) {
   let capturedUrl = null;
   page.on("request", (request) => {
     const url = request.url();
-    if (url.includes("readSharedViewData") && !url.includes("allowMsgpackOfResult")) {
-      capturedUrl = url;
+    if (url.includes("readSharedViewData")) {
+      // Airtable always requests msgpack; ask for JSON instead when replaying the URL
+      capturedUrl = url.replace(/(%22allowMsgpackOfResult%22%3A|"allowMsgpackOfResult":)true/, "$1false");
     }
   });
 
@@ -69,7 +70,6 @@ async function exportOneTable(browser, shareUrl, attempt = 1) {
           headers: {
             "X-Requested-With": "XMLHttpRequest",
             "x-airtable-application-id": appId,
-            "x-airtable-accept-msgpack": "true",
             "x-user-locale": "en",
             "x-airtable-inter-service-client": "webClient",
             "x-time-zone": "America/New_York"

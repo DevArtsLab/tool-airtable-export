@@ -4,6 +4,7 @@
 
 - Fixed `Failed to capture readSharedViewData request URL`: Airtable now issues a single shared-view request that always sets `allowMsgpackOfResult`, which the old filter skipped
 - The captured URL now has `allowMsgpackOfResult` rewritten to `false` and the `x-airtable-accept-msgpack` header dropped, so the API returns JSON instead of msgpack
+- Dropped the unused `@msgpack/msgpack` dependency; the exporter has only ever parsed JSON
 
 ## [1.6.0] - 2026-09-02
 
